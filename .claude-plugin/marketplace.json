@@ -1,0 +1,13 @@
+{
+  "name": "agent-guards",
+  "owner": {
+    "name": "Bertan Günyel"
+  },
+  "plugins": [
+    {
+      "name": "agent-guards",
+      "source": "./",
+      "description": "Guard hooks and skills for coding agents working in a repository"
+    }
+  ]
+}

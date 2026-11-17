@@ -1,0 +1,8 @@
+{
+  "name": "agent-guards",
+  "version": "0.1.0",
+  "description": "Guard hooks and skills for coding agents working in a repository",
+  "author": {
+    "name": "Bertan Günyel"
+  }
+}
