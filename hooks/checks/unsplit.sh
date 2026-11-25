@@ -5642,7 +5642,21 @@ check append-only-docs.sh ALLOW 'the append that is documented is still permitte
 # real paths in this repository, with CLAUDE_PROJECT_DIR naming the root a
 # relative path is resolved against -- since #159 it decides nothing else, the
 # guard reading the path's own segments. A new seam in this suite, named as one.
-REPO_ROOT=$(cd "$SUITE_DIR/../.." && pwd)
+# THE HOST IS A FIXTURE (agent-guards step 2). In clause-and-effect the suite
+# lived inside the project it guarded and borrowed that project's own files;
+# here it is built from fixtures/host/ at every run, one commit, so that
+# a check never depends on what some real repository holds that day. The
+# repository the suite itself lives in is SUITE_REPO (end-of-run.sh), a
+# different directory on purpose. Read off $SUITE_DIR, never $HOOKS: a mutated
+# copy of the hooks carries no fixtures.
+REPO_ROOT="$FIXTURES/host"
+cp -R "$SUITE_DIR/fixtures/host" "$REPO_ROOT" \
+  && git init -q -b fixture "$REPO_ROOT" \
+  && git -C "$REPO_ROOT" add -A \
+  && git -C "$REPO_ROOT" -c user.email=checks@example.invalid -c user.name=checks commit -q -m host || {
+  echo "the host fixture was not built from fixtures/host/; the checks against it would prove nothing" >&2
+  exit 1
+}
 
 # An ALLOW that came from the path simply not being there would say nothing
 # about docs/research/, and a BLOCK-expecting case needs its file present for

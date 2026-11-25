@@ -86,11 +86,16 @@ judged_here() {  # judged_here <record> <common dir> -- each dev-NN run's direct
         [ "$common" = "$2" ] && printf '%s\n' "$dir"
       done
 }
-THIS_COMMON=$(cd -- "$REPO_ROOT" && git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+# "This repository" is the one the suite lives in, whose refs a dev-NN check
+# must never read. In clause-and-effect that was also the hooks' project root;
+# in agent-guards the project root is a fixture (REPO_ROOT, unsplit.sh) and
+# this is agent-guards itself.
+SUITE_REPO=$(git -C "$SUITE_DIR" rev-parse --show-toplevel 2>/dev/null)
+THIS_COMMON=$(cd -- "$SUITE_REPO" && git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
 [ -n "$THIS_COMMON" ] \
   || fail static 'this repository has no git common directory to compare with, so the checks below prove nothing'
 ON_DEV_P=$(cd -- "$ON_DEV" && pwd -P)
-REPO_ROOT_P=$(cd -- "$REPO_ROOT" && pwd -P)
+REPO_ROOT_P=$(cd -- "$SUITE_REPO" && pwd -P)
 LIB_P=$(cd -- "$SUITE_DIR/lib" && pwd -P)
 # The reader, handed a record: a dev-NN run in the repository's root and one in
 # a subdirectory of it are named, and neither is $SUITE_DIR -- the one string the
@@ -1356,7 +1361,7 @@ tok 'and the matrix presents the entries in that order' \
 # order #200 states, over the IDs the matrix printed -- so what goes red is the
 # matrix disagreeing with the statement, whatever the function does.
 REPO_GH_ORDER=$(requirements_read matrix "$HOOKS/requirements.md" "$REQ_FIX/empty-ledger" \
-                  "$SUITE_TEXT" "$REPO_ROOT" "$HOOKS/runbook.md" \
+                  "$SUITE_TEXT" "$SUITE_REPO" "$HOOKS/runbook.md" \
                   "$PROVENANCE_COUNTS" "$REQUIREMENT_SHAPE_HELD" | awk '/^GH-/ { print $1 }')
 if [ -z "$REPO_GH_ORDER" ]; then
   fail static 'the matrix of this repository printed no GH- entry, so its order says nothing'
@@ -2165,7 +2170,7 @@ echo "--- this repository ---"
 # check above this line; their own results reach the matrix and not this reading.
 cp "$LEDGER" "$FIXTURES/ledger-read"
 FINDINGS=$(requirements_read findings "$HOOKS/requirements.md" "$FIXTURES/ledger-read" \
-             "$SUITE_TEXT" "$REPO_ROOT" "$HOOKS/runbook.md" "$PROVENANCE_COUNTS" "$REQUIREMENT_SHAPE_HELD")
+             "$SUITE_TEXT" "$SUITE_REPO" "$HOOKS/runbook.md" "$PROVENANCE_COUNTS" "$REQUIREMENT_SHAPE_HELD")
 FINDINGS_STATUS=$?
 # An awk that failed may print nothing, or only the findings before the failure,
 # and a loop over what it printed passes by asking too little -- the permitting
@@ -2198,7 +2203,7 @@ done <<< "$FINDINGS"
 # come from, and comparing across the two would go red for an override.
 req GH-148
 MUT_MATRIX_LINE=$(requirements_read matrix "$SUITE_DIR/requirements.md" "$FIXTURES/ledger-read" \
-                    "$SUITE_TEXT" "$REPO_ROOT" "$SUITE_DIR/runbook.md" \
+                    "$SUITE_TEXT" "$SUITE_REPO" "$SUITE_DIR/runbook.md" \
                     "$PROVENANCE_COUNTS" "$REQUIREMENT_SHAPE_HELD" \
                   | awk '/^requirements matrix: / { print; exit }')
 REQ_ACTIVE_CANON=$(printf '%s\n' "$MUT_MATRIX_LINE" \
@@ -2349,7 +2354,7 @@ tok 'the heading question and each clause of the final verdict that writes a row
 # above included, and then the verdict line the run would have printed.
 if [ -n "$MATRIX" ]; then
   requirements_read matrix "$HOOKS/requirements.md" "$LEDGER" "$SUITE_TEXT" \
-    "$REPO_ROOT" "$HOOKS/runbook.md" "$PROVENANCE_COUNTS" "$REQUIREMENT_SHAPE_HELD" >&3
+    "$SUITE_REPO" "$HOOKS/runbook.md" "$PROVENANCE_COUNTS" "$REQUIREMENT_SHAPE_HELD" >&3
   MATRIX_STATUS=$?
   exec >&3
   if [ "$MATRIX_STATUS" != 0 ]; then
