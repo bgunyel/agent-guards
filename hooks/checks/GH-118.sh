@@ -673,7 +673,7 @@ flip "$SUITE_DIR" no-pr-decisions.sh ALLOW BLOCK 'an unreadable option before an
 # `#`, so either reader would do today; that it still reads bare
 # comment_reflow, and so splits a phrase at a tab, is #323's.
 R118_LEFT_OPEN=$(awk '/^\*\*Deliberately left open\.\*\*/ { f = 1 } f && /^## / { exit } f' \
-  "$SUITE_DIR/../../CLAUDE.md" | comment_reflow)
+  "$REPO_ROOT/CLAUDE.md" | comment_reflow)
 holds 'CLAUDE.md names the refused pull request read as a left-open consequence' \
   "$R118_LEFT_OPEN" '`gh pr --json title view 5` although the paragraph above grants'
 holds 'and the refused read of a group no rule guards' \

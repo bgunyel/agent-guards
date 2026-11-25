@@ -6583,7 +6583,7 @@ section "=== CLAUDE.md names every hook that carries the boundary ==="
 # turns this red; adding a hook about documents or commands means adding it
 # here, deliberately, with a reason.
 
-CLAUDE_MD="$SUITE_DIR/../../CLAUDE.md"
+CLAUDE_MD="$REPO_ROOT/CLAUDE.md"
 SECTION="$FIXTURES/boundary-section.md"
 # awk rather than `sed -n '/start/,/^## /p' | sed '$d'`: that pair drops the last
 # line unconditionally, and when the boundary section is the last in the file
@@ -6829,7 +6829,7 @@ section "=== the documents answer the citations the hooks make into them ==="
 # evidenced there by the other extraction rather than by its own. *Active dev
 # branch* is the first entry, the mirror case: its `unarmed` is real evidence of
 # the stop, and nothing before it can show a start that came too early.
-CONTEXT_MD="$SUITE_DIR/../../CONTEXT.md"
+CONTEXT_MD="$REPO_ROOT/CONTEXT.md"
 SKILL_MD="$SUITE_DIR/../skills/branch-hygiene/SKILL.md"
 entry() {  # entry <file> <bolded name> -- one glossary entry, name to _Avoid_
   awk -v name="**$2**:" '$0 == name {f=1} f {print} f && /^_Avoid_:/ {exit}' "$1" 2>/dev/null
@@ -7905,7 +7905,12 @@ RUN_BY_SETTINGS=$(jq -r '.hooks[][]?.hooks[]?.command' "$SETTINGS" 2>/dev/null \
 # listing already, this suite among them, and the header does not name itself.
 # Since agent-guards step 2f the registration, hooks.json, is read beside this
 # suite as $SUITE_DIR/hooks.json, so that spelling is matched too, for json only.
-READ_DOCS=$(grep -oE '"\$(SUITE_DIR/\.\./[^"]*\.(json|md|sh)|SUITE_DIR/[^"/]*\.json|HOOKS/[^"/]*\.md)"' "$SUITE_TEXT" \
+# Since step 2g the host's documents (CLAUDE.md, CONTEXT.md, the dev-log README)
+# are frozen copies in the fixture host and read as $REPO_ROOT/..., so the
+# host's top-level documents and that README are matched, and nothing else under
+# $REPO_ROOT: the dev-log entry and the research note there are the targets the
+# append-only checks name, not documents this suite audits.
+READ_DOCS=$(grep -oE '"\$(SUITE_DIR/\.\./[^"]*\.(json|md|sh)|SUITE_DIR/[^"/]*\.json|HOOKS/[^"/]*\.md|REPO_ROOT/([^"/]+|docs/dev-log/README)\.md)"' "$SUITE_TEXT" \
   | sed 's|.*/||; s|"$||' | sort -u | tr '\n' ' ')
 [ -n "$SELF_NAMED" ] && [ -n "$RUN_BY_SETTINGS" ] && [ -n "$READ_DOCS" ] \
   && [ -n "$HOOK_FILES" ] || {

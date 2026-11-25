@@ -214,7 +214,7 @@ tok 'the span stops at the last cut' \
     '- a. - b. - Written for technical readers. - c.' \
     "$(r157_span '- a. - b. - Written for technical readers. - c. - Written for technical readers. - d.')"
 
-R157_README="$SUITE_DIR/../../docs/dev-log/README.md"
+R157_README="$REPO_ROOT/docs/dev-log/README.md"
 R157_CONV=$(r157_conventions "$R157_README")
 # What the absences read: lowercased, with the one spelling the rule gives taken
 # out first, so the stem is asked in every case and the rule's own name is not it.

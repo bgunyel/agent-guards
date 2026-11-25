@@ -582,13 +582,13 @@ check append-only-docs.sh ALLOW 'and perl -pi as not refused (#246 decides this 
 check append-only-docs.sh ALLOW 'and python3 -c as not refused (#246 decides this verdict)' \
   "python3 -c \"import pathlib; pathlib.Path('$R177_E').write_text('x')\""
 R177_CLAUDE=$(awk '/^One exception, and it is one part of one line\./ { f = 1 } f && /^`ls docs\/`/ { exit } f' \
-  "$SUITE_DIR/../../CLAUDE.md" | comment_reflow)
+  "$REPO_ROOT/CLAUDE.md" | comment_reflow)
 holds 'CLAUDE.md names the spellings the Bash half refuses' \
   "$R177_CLAUDE" 'the Bash spellings it refuses on an entry — `sed -i`, `rm`, `mv`, `cp`, `tee`, `truncate` and a `>` — it refuses for the correction too.'
 holds 'and says the rest are open, and whose to close' \
   "$R177_CLAUDE" 'is not refused at all, which is #246'"'"'s to close.'
 lacks 'and does not say the correction is refused in every Bash spelling' "$R177_CLAUDE" 'every Bash spelling'
-R177_CONTEXT=$(comment_reflow < "$SUITE_DIR/../../CONTEXT.md")
+R177_CONTEXT=$(comment_reflow < "$REPO_ROOT/CONTEXT.md")
 holds 'CONTEXT.md names the spellings the Bash half refuses' \
   "$R177_CONTEXT" 'the spellings it refuses on an entry — `sed -i`, `rm`, `mv`, `cp`, `tee`, `truncate` and a `>` — it refuses for the correction too,'
 holds 'and says the rest are open, and whose to close' \
