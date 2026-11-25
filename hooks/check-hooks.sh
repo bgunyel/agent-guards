@@ -5,7 +5,8 @@
 # alembic-via-uv-group.sh, append-only-docs.sh and append-only-docs-edit.sh.
 # The session report, report-stale-branches.sh, and the tokeniser most of them
 # source, lib/command-scan.sh. And the files that run or describe them: the
-# settings.json that registers them, and CLAUDE.md, CONTEXT.md and the
+# hooks.json that registers them, this repository's settings.json, which
+# holds the one setting a plugin cannot carry, and CLAUDE.md, CONTEXT.md and the
 # branch-hygiene skill's SKILL.md, and the dev-log's README.md, whose rules
 # for naming an entry and appending to one are pinned (#157), and the entries
 # beside it, each file's first line read against its name (#162). And the one script

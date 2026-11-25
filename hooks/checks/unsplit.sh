@@ -5992,13 +5992,19 @@ armed 'and a whitelisted spelling must resolve to that same commit' \
 # settings.json is what actually runs either file, so a hook present in the tree
 # and absent from the configuration is a hook that does nothing. jq reads it;
 # the expectation is a literal.
-SETTINGS="$SUITE_DIR/../settings.json"
+# THE REGISTRATION IS THE PLUGIN'S (agent-guards step 2f). In clause-and-effect
+# it was .claude/settings.json beside the hooks; here it is hooks.json beside
+# them, the file a plugin install reads, so every command names its hook under
+# "${CLAUDE_PLUGIN_ROOT}"/hooks/. What a plugin cannot carry, worktree.baseRef,
+# stays in each repository's own .claude/settings.json, and is read there below
+# (REPO_SETTINGS) out of this one, which obeys its own rules.
+SETTINGS="$SUITE_DIR/hooks.json"
 req GH-44.7 FR-40
 tok 'settings.json runs the report at SessionStart' \
-    '"$CLAUDE_PROJECT_DIR"/.claude/hooks/report-stale-branches.sh' \
+    '"${CLAUDE_PLUGIN_ROOT}"/hooks/report-stale-branches.sh' \
     "$(jq -r '.hooks.SessionStart[]?.hooks[]?.command' "$SETTINGS" 2>/dev/null | grep report-stale-branches)"
 tok 'settings.json runs the guard on every Bash command' \
-    '"$CLAUDE_PROJECT_DIR"/.claude/hooks/no-work-on-stale-branch.sh' \
+    '"${CLAUDE_PLUGIN_ROOT}"/hooks/no-work-on-stale-branch.sh' \
     "$(jq -r '.hooks.PreToolUse[]? | select(.matcher == "Bash") | .hooks[]?.command' "$SETTINGS" 2>/dev/null | grep no-work-on-stale-branch)"
 # The report's timeout must outlast the network calls it waits on, or the hook
 # is killed before it can say that one of them failed -- and a killed
@@ -6072,9 +6078,15 @@ tok 'and it outlasts them by arithmetic, not by both literals happening to agree
 # which is gitignored and overrides this file on the one machine that has it.
 # #36 said changing baseRef "leaves the suite green", which was true of the
 # harness's behaviour and is false of this file now, which is the half this pins.
+# READ OUT OF THIS REPOSITORY'S OWN SETTINGS (agent-guards step 2f). A plugin
+# has no way to set worktree.baseRef, so the value lives in each repository's
+# .claude/settings.json, and agent-guards keeps one for the purpose. This pins
+# agent-guards' copy; every other repository's is the per-repository config
+# check's to judge.
+REPO_SETTINGS="$SUITE_DIR/../.claude/settings.json"
 req GH-99.2
 tok 'settings.json forks a worktree from origin/main, which is refused, and not from HEAD' \
-    'fresh' "$(jq -r '.worktree.baseRef' "$SETTINGS" 2>/dev/null)"
+    'fresh' "$(jq -r '.worktree.baseRef' "$REPO_SETTINGS" 2>/dev/null)"
 
 section "=== #99: the report reads whether a branch cut from origin/main fails closed ==="
 # Why the report reads this is argued once, in the comment above the read in
@@ -7891,7 +7903,9 @@ RUN_BY_SETTINGS=$(jq -r '.hooks[][]?.hooks[]?.command' "$SETTINGS" 2>/dev/null \
 # #126 it was the only `.sh` path spelled this way. Beside this suite, under
 # $HOOKS itself, only `md` is read this way: every `.sh` there is on the disk
 # listing already, this suite among them, and the header does not name itself.
-READ_DOCS=$(grep -oE '"\$(SUITE_DIR/\.\./[^"]*\.(json|md|sh)|HOOKS/[^"/]*\.md)"' "$SUITE_TEXT" \
+# Since agent-guards step 2f the registration, hooks.json, is read beside this
+# suite as $SUITE_DIR/hooks.json, so that spelling is matched too, for json only.
+READ_DOCS=$(grep -oE '"\$(SUITE_DIR/\.\./[^"]*\.(json|md|sh)|SUITE_DIR/[^"/]*\.json|HOOKS/[^"/]*\.md)"' "$SUITE_TEXT" \
   | sed 's|.*/||; s|"$||' | sort -u | tr '\n' ' ')
 [ -n "$SELF_NAMED" ] && [ -n "$RUN_BY_SETTINGS" ] && [ -n "$READ_DOCS" ] \
   && [ -n "$HOOK_FILES" ] || {
@@ -9143,7 +9157,7 @@ echo "--- every registered hook is one of these, and the read is written once --
 registered_for() {  # registered_for <tool> -- hook basenames whose matcher names it
   jq -r --arg t "$1" \
     '.hooks.PreToolUse[] | select(any(.matcher | split("|")[]; . == $t)) | .hooks[].command' \
-    "$REPO_ROOT/.claude/settings.json" 2>/dev/null \
+    "$SETTINGS" 2>/dev/null \
     | sed 's#^.*/##; s#"$##' | sort -u | tr '\n' ' '
 }
 req GH-95.2
@@ -9298,7 +9312,7 @@ echo "--- issue #96: a line long enough to outlast the timeout ---"
 # would never read it as. Recorded in the library under THE LINE CAP, and
 # pinned below.
 BASH_HOOKS=$(jq -r '.hooks.PreToolUse[] | select(.matcher == "Bash") | .hooks[].command' \
-               "$SUITE_DIR/../settings.json" 2>/dev/null | sed 's|.*/||' | sort | tr '\n' ' ')
+               "$SETTINGS" 2>/dev/null | sed 's|.*/||' | sort | tr '\n' ' ')
 [ -n "$BASH_HOOKS" ] || {
   echo "no Bash hooks were read out of settings.json; the checks below prove nothing" >&2
   exit 1
@@ -9306,7 +9320,7 @@ BASH_HOOKS=$(jq -r '.hooks.PreToolUse[] | select(.matcher == "Bash") | .hooks[].
 req GH-96.2
 tok 'every Bash hook runs under the 5 s timeout the 1 s bound is set against' \
     '5' "$(jq -r '[.hooks.PreToolUse[] | select(.matcher == "Bash") | .hooks[].timeout]
-                  | unique | map(tostring) | join(" ")' "$SUITE_DIR/../settings.json")"
+                  | unique | map(tostring) | join(" ")' "$SETTINGS")"
 
 # The hooks that call cs_within_cap, derived off their code in the load-contract
 # section, are the Bash hooks settings.json registers -- no more, since the Edit
@@ -13957,15 +13971,15 @@ echo "--- settings.json: what runs, on which tool, in what order, under what tim
 # The one kind of mutation the issue names that lives in a hook -- a second hook
 # refusing a permitted spelling -- is a registry row,
 # `second-hook-refuses-a-permitted-read`.
-REGISTRATION_EXPECTED='PreToolUse|Bash|command|"$CLAUDE_PROJECT_DIR"/.claude/hooks/no-commit-to-main.sh|5
-PreToolUse|Bash|command|"$CLAUDE_PROJECT_DIR"/.claude/hooks/alembic-via-uv-group.sh|5
-PreToolUse|Bash|command|"$CLAUDE_PROJECT_DIR"/.claude/hooks/pytest-via-uv-group.sh|5
-PreToolUse|Bash|command|"$CLAUDE_PROJECT_DIR"/.claude/hooks/append-only-docs.sh|5
-PreToolUse|Bash|command|"$CLAUDE_PROJECT_DIR"/.claude/hooks/no-git-push.sh|5
-PreToolUse|Bash|command|"$CLAUDE_PROJECT_DIR"/.claude/hooks/no-pr-decisions.sh|5
-PreToolUse|Bash|command|"$CLAUDE_PROJECT_DIR"/.claude/hooks/no-work-on-stale-branch.sh|5
-PreToolUse|Edit|Write|command|"$CLAUDE_PROJECT_DIR"/.claude/hooks/append-only-docs-edit.sh|5
-SessionStart|-|command|"$CLAUDE_PROJECT_DIR"/.claude/hooks/report-stale-branches.sh|50'
+REGISTRATION_EXPECTED='PreToolUse|Bash|command|"${CLAUDE_PLUGIN_ROOT}"/hooks/no-commit-to-main.sh|5
+PreToolUse|Bash|command|"${CLAUDE_PLUGIN_ROOT}"/hooks/alembic-via-uv-group.sh|5
+PreToolUse|Bash|command|"${CLAUDE_PLUGIN_ROOT}"/hooks/pytest-via-uv-group.sh|5
+PreToolUse|Bash|command|"${CLAUDE_PLUGIN_ROOT}"/hooks/append-only-docs.sh|5
+PreToolUse|Bash|command|"${CLAUDE_PLUGIN_ROOT}"/hooks/no-git-push.sh|5
+PreToolUse|Bash|command|"${CLAUDE_PLUGIN_ROOT}"/hooks/no-pr-decisions.sh|5
+PreToolUse|Bash|command|"${CLAUDE_PLUGIN_ROOT}"/hooks/no-work-on-stale-branch.sh|5
+PreToolUse|Edit|Write|command|"${CLAUDE_PLUGIN_ROOT}"/hooks/append-only-docs-edit.sh|5
+SessionStart|-|command|"${CLAUDE_PLUGIN_ROOT}"/hooks/report-stale-branches.sh|50'
 REGISTRATION=$(jq -r '.hooks | to_entries[] | .key as $e | .value[] | (.matcher // "-") as $m
                       | .hooks[] | "\($e)|\($m)|\(.type)|\(.command)|\(.timeout)"' "$SETTINGS" 2>/dev/null)
 [ -n "$REGISTRATION" ] || {
